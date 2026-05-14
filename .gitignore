@@ -1,0 +1,5 @@
+node_modules
+dist
+.env
+*.local
+spec_output.json
