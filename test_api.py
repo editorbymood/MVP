@@ -150,6 +150,25 @@ def print_spec(spec: dict):
 
 
 def main():
+    # Load from .env file if present
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+
+    global API_KEY, URL
+    API_KEY = os.environ.get("GEMINI_API_KEY", "")
+    URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent?key={API_KEY}"
+
+    if not API_KEY:
+        print("❌ No API key found. Set GEMINI_API_KEY in your .env file or environment.")
+        print("   Get one free at: https://aistudio.google.com/apikey")
+        sys.exit(1)
+
     if len(sys.argv) < 2:
         print("Usage: python3 test_api.py \"Your startup idea here\"")
         print("Example: python3 test_api.py \"AI-powered meal planner for fitness enthusiasts\"")
