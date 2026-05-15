@@ -99,8 +99,51 @@ QUALITY RULES
 - If AI is involved, name specific models/strategies. If not, omit ai from techStack.
 - Respond with ONLY valid JSON. No code fences, no commentary.`;
 
+// Extract valid JSON from raw text — handles thinking tokens, fences, truncation
+function extractJSON(raw) {
+  let text = raw.trim();
+
+  // Strip markdown code fences
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  }
+
+  // Find the first '{' and extract from there
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  text = text.substring(start);
+
+  // Try parsing as-is first
+  try { return JSON.parse(text); } catch {}
+
+  // If truncated, find the last valid closing brace using bracket matching
+  let depth = 0;
+  let lastValidEnd = -1;
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{' || ch === '[') depth++;
+    if (ch === '}' || ch === ']') {
+      depth--;
+      if (depth === 0) { lastValidEnd = i; break; }
+    }
+  }
+
+  if (lastValidEnd > 0) {
+    try { return JSON.parse(text.substring(0, lastValidEnd + 1)); } catch {}
+  }
+
+  return null;
+}
+
 // Direct REST API call to Gemini with retry + exponential backoff
-async function callGemini(apiKey, idea, retries = 3) {
+async function callGemini(apiKey, idea, retries = 4) {
   const url = `${GEMINI_URL}?key=${apiKey}`;
   const body = {
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -108,41 +151,65 @@ async function callGemini(apiKey, idea, retries = 3) {
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0.7,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 16384,
     },
   };
 
   for (let i = 0; i < retries; i++) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-    if (res.status === 429) {
-      const wait = Math.pow(2, i) * 2000; // 2s, 4s, 8s
-      console.log(`Rate limited. Retrying in ${wait}ms (attempt ${i + 1}/${retries})...`);
-      await new Promise(r => setTimeout(r, wait));
-      continue;
+      if (res.status === 429) {
+        const wait = Math.pow(2, i) * 2000;
+        console.log(`Rate limited. Retrying in ${wait}ms (attempt ${i + 1}/${retries})...`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const msg = errData.error?.message || `Gemini API error (${res.status})`;
+        throw Object.assign(new Error(msg), { status: res.status });
+      }
+
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        console.log(`Empty response on attempt ${i + 1}. Retrying...`);
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+
+      // Try to parse JSON
+      const parsed = extractJSON(text);
+      if (parsed && parsed.projectName) {
+        return parsed;
+      }
+
+      // JSON parse failed — log and retry
+      console.log(`Malformed JSON on attempt ${i + 1}. Raw (first 200 chars): ${text.substring(0, 200)}`);
+      if (i < retries - 1) {
+        console.log(`Retrying generation...`);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+    } catch (err) {
+      if (err.status) throw err; // propagate HTTP errors
+      console.error(`Attempt ${i + 1} error:`, err.message);
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+      throw err;
     }
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      const msg = errData.error?.message || `Gemini API error (${res.status})`;
-      throw Object.assign(new Error(msg), { status: res.status });
-    }
-
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!text) {
-      throw new Error('Gemini returned an empty response. Please try again.');
-    }
-
-    return text;
   }
 
-  throw Object.assign(new Error('API is busy after multiple retries. Please wait 60 seconds and try again.'), { status: 429 });
+  throw new Error('Failed to generate a valid spec after multiple attempts. Please try again.');
 }
 
 app.post('/api/generate', async (req, res) => {
@@ -158,23 +225,10 @@ app.post('/api/generate', async (req, res) => {
   }
 
   try {
-    const rawText = await callGemini(apiKey, idea.trim());
-
-    // Strip markdown fences if present
-    let jsonStr = rawText.trim();
-    if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
-    }
-
-    const parsed = JSON.parse(jsonStr);
+    const parsed = await callGemini(apiKey, idea.trim());
     return res.json({ spec: parsed });
   } catch (err) {
     console.error('Generation error:', err.message);
-
-    if (err instanceof SyntaxError) {
-      return res.status(502).json({ error: 'AI returned malformed JSON. Please try again.' });
-    }
-
     const status = err.status || 500;
     return res.status(status).json({ error: err.message });
   }
