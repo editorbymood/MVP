@@ -45,11 +45,21 @@ OUTPUT SCHEMA
     ]
   },
   "techStack": {
-    "frontend": ["string"],
-    "backend": ["string"],
-    "database": ["string"],
-    "infrastructure": ["string"],
-    "ai": ["string — omit this entire key if idea does not involve AI"]
+    "frontend": [
+      { "name": "string — e.g. 'Next.js 14'", "reason": "string — why this was chosen over alternatives for THIS project", "usage": "string — how exactly it will be used in the project, e.g. 'App Router for page layouts, Server Components for fast initial load, API routes for lightweight endpoints'" }
+    ],
+    "backend": [
+      { "name": "string", "reason": "string", "usage": "string" }
+    ],
+    "database": [
+      { "name": "string", "reason": "string", "usage": "string" }
+    ],
+    "infrastructure": [
+      { "name": "string", "reason": "string", "usage": "string" }
+    ],
+    "ai": [
+      { "name": "string", "reason": "string", "usage": "string — omit this entire key if idea does not involve AI" }
+    ]
   },
   "userStories": [
     "string — format: As a [specific persona], I want to [specific action] so that [concrete outcome]. Write 5-8 stories."
@@ -62,13 +72,14 @@ OUTPUT SCHEMA
   ],
   "costEstimate": {
     "development": [
-      { "item": "string", "hours": "string", "cost": "string" }
+      { "item": "string — e.g. 'Frontend Development (Next.js + 6 pages)'", "hours": "string — e.g. '60-80 hrs'", "cost": "string — e.g. '$3,000 - $4,000'", "rate": "string — e.g. '$50/hr (mid-level freelancer)'" }
     ],
     "monthly": [
-      { "item": "string", "cost": "string", "notes": "string" }
+      { "item": "string — e.g. 'Vercel Pro'", "cost": "string — e.g. '$20/mo'", "notes": "string — what this covers", "freeTier": "string — e.g. 'Hobby tier is free for up to 100GB bandwidth' or 'N/A'" }
     ],
-    "totalMvpBudget": "string",
-    "monthlyRunRate": "string"
+    "totalMvpBudget": "string — specific range e.g. '$8,500 - $14,000'",
+    "monthlyRunRate": "string — specific range e.g. '$85 - $250/mo'",
+    "costNotes": "string — 2-3 sentences with assumptions: developer rate, region, freelancer vs agency, what's included/excluded"
   },
   "competitiveLandscape": {
     "competitors": [
@@ -92,9 +103,10 @@ OUTPUT SCHEMA
 
 QUALITY RULES
 - Be specific, not generic. No filler like 'implement robust system'.
-- Tech stack must fit a 1-2 dev team. Must-have features are the bare minimum to validate value.
+- Tech stack: for EACH technology, explain WHY it was chosen specifically for this project (not generic benefits), and HOW it will be used in the codebase. Name specific versions. Compare briefly to alternatives when relevant (e.g. 'Next.js over CRA for SSR' or 'Supabase over Firebase for PostgreSQL compatibility').
+- Cost estimates: Use real-world 2024 pricing. Development costs should assume a mid-level freelancer ($40-$80/hr depending on complexity). Monthly costs must use actual service pricing (Vercel: $20/mo Pro, Supabase: free to $25/mo, OpenAI API: $0.002/1K tokens for GPT-3.5 or $0.03/1K for GPT-4, AWS S3: ~$0.023/GB, etc.). Include free tier information where available.
+- Must-have features are the bare minimum to validate value. Timeline: 4-8 weeks for MVP.
 - Risks must be specific to this idea. User stories must reference defined personas.
-- Timeline: 4-8 weeks for MVP. Cost estimates: real-world pricing (Vercel, Supabase, etc.).
 - Competitors must be REAL companies. Metrics must be outcome-based, not vanity.
 - If AI is involved, name specific models/strategies. If not, omit ai from techStack.
 - Respond with ONLY valid JSON. No code fences, no commentary.`;

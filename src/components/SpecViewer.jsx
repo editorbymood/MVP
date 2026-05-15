@@ -169,24 +169,45 @@ export default function SpecViewer({ spec, onReset }) {
           <h2 className="section-title">Tech Stack</h2>
           <div className="tech-categories">
             {[
-              { key: 'frontend', label: 'Frontend' },
-              { key: 'backend', label: 'Backend' },
-              { key: 'database', label: 'Database' },
-              { key: 'infrastructure', label: 'Infrastructure' },
-              { key: 'ai', label: 'AI / ML' },
-            ].map(({ key, label }) => {
+              { key: 'frontend', label: 'Frontend', icon: '🎨' },
+              { key: 'backend', label: 'Backend', icon: '⚙️' },
+              { key: 'database', label: 'Database', icon: '🗄️' },
+              { key: 'infrastructure', label: 'Infrastructure', icon: '☁️' },
+              { key: 'ai', label: 'AI / ML', icon: '🤖' },
+            ].map(({ key, label, icon }) => {
               const items = spec.techStack?.[key]
               if (!items?.length) return null
               return (
-                <div key={key} className="card tech-row">
-                  <div className="tech-category-label">
+                <div key={key} className="tech-category-block">
+                  <div className="tech-category-header">
                     <span className={`tech-dot ${key}`} />
-                    {label}
+                    <span className="tech-category-title">{icon} {label}</span>
                   </div>
-                  <div className="tech-tags">
-                    {items.map((t, i) => (
-                      <span key={i} className={`tech-tag ${key}`}>{t}</span>
-                    ))}
+                  <div className="tech-items-grid">
+                    {items.map((t, i) => {
+                      // Handle both object {name, reason, usage} and legacy string format
+                      const isObj = typeof t === 'object' && t !== null
+                      const name = isObj ? t.name : t
+                      const reason = isObj ? t.reason : null
+                      const usage = isObj ? t.usage : null
+                      return (
+                        <div key={i} className={`card tech-detail-card ${key}`}>
+                          <div className="tech-detail-name">{name}</div>
+                          {reason && (
+                            <div className="tech-detail-row">
+                              <span className="tech-detail-label">Why</span>
+                              <span className="tech-detail-text">{reason}</span>
+                            </div>
+                          )}
+                          {usage && (
+                            <div className="tech-detail-row">
+                              <span className="tech-detail-label">How</span>
+                              <span className="tech-detail-text">{usage}</span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -254,16 +275,22 @@ export default function SpecViewer({ spec, onReset }) {
           <h2 className="section-title">Cost Estimate</h2>
           <div className="cost-summary-row">
             <div className="card cost-total-card">
-              <div className="card-label">Total MVP Budget</div>
+              <div className="card-label">💰 Total MVP Budget</div>
               <div className="cost-big-number">{spec.costEstimate?.totalMvpBudget || 'N/A'}</div>
               <div className="cost-sub">One-time development cost</div>
             </div>
             <div className="card cost-total-card">
-              <div className="card-label">Monthly Run Rate</div>
+              <div className="card-label">🔄 Monthly Run Rate</div>
               <div className="cost-big-number monthly">{spec.costEstimate?.monthlyRunRate || 'N/A'}</div>
               <div className="cost-sub">Recurring operational cost</div>
             </div>
           </div>
+          {spec.costEstimate?.costNotes && (
+            <div className="card cost-notes-card" style={{ marginTop: 12 }}>
+              <div className="card-label">📋 Pricing Assumptions</div>
+              <p className="card-text cost-notes-text">{spec.costEstimate.costNotes}</p>
+            </div>
+          )}
           <div className="two-col" style={{ marginTop: 16 }}>
             {spec.costEstimate?.development?.length > 0 && (
               <div className="card">
@@ -279,10 +306,15 @@ export default function SpecViewer({ spec, onReset }) {
                   </ResponsiveContainer>
                 )}
                 <table className="cost-table">
-                  <thead><tr><th>Item</th><th>Hours</th><th>Cost</th></tr></thead>
+                  <thead><tr><th>Item</th><th>Hours</th><th>Rate</th><th>Cost</th></tr></thead>
                   <tbody>
                     {spec.costEstimate.development.map((d, i) => (
-                      <tr key={i}><td>{d.item}</td><td className="cost-hours">{d.hours}</td><td className="cost-amount">{d.cost}</td></tr>
+                      <tr key={i}>
+                        <td>{d.item}</td>
+                        <td className="cost-hours">{d.hours}</td>
+                        <td className="cost-rate">{d.rate || '—'}</td>
+                        <td className="cost-amount">{d.cost}</td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -292,10 +324,15 @@ export default function SpecViewer({ spec, onReset }) {
               <div className="card">
                 <div className="card-label">Monthly Infrastructure</div>
                 <table className="cost-table">
-                  <thead><tr><th>Service</th><th>Cost</th><th>Notes</th></tr></thead>
+                  <thead><tr><th>Service</th><th>Cost</th><th>Free Tier</th><th>Notes</th></tr></thead>
                   <tbody>
                     {spec.costEstimate.monthly.map((m, i) => (
-                      <tr key={i}><td>{m.item}</td><td className="cost-amount">{m.cost}</td><td className="cost-notes">{m.notes}</td></tr>
+                      <tr key={i}>
+                        <td>{m.item}</td>
+                        <td className="cost-amount">{m.cost}</td>
+                        <td className="cost-free-tier">{m.freeTier || '—'}</td>
+                        <td className="cost-notes">{m.notes}</td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
