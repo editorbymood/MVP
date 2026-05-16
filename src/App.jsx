@@ -14,14 +14,36 @@ export default function App() {
     setView('loading')
     setIdea(ideaText)
 
+    // 120s timeout — Gemini thinking can take up to 60s
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 120000)
+
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea: ideaText }),
+        signal: controller.signal,
       })
 
-      const data = await res.json()
+      // Read as text first — Cloudflare may return HTML error pages or empty bodies
+      const rawText = await res.text()
+
+      if (!rawText || rawText.trim().length === 0) {
+        throw new Error('Server returned an empty response. The request may have timed out — please try again.')
+      }
+
+      // Check if Cloudflare returned an HTML error page instead of JSON
+      if (rawText.trim().startsWith('<') || rawText.trim().startsWith('<!')) {
+        throw new Error('The server timed out while generating your spec. This usually means the AI is taking too long. Please try again with a shorter or simpler idea description.')
+      }
+
+      let data
+      try {
+        data = JSON.parse(rawText)
+      } catch {
+        throw new Error('Server returned an invalid response. Please try again.')
+      }
 
       if (!res.ok) {
         throw new Error(data.error || `Server error (${res.status})`)
@@ -30,8 +52,14 @@ export default function App() {
       setSpec(data.spec)
       setView('result')
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.')
+      if (err.name === 'AbortError') {
+        setError('Request timed out. The AI took too long to respond. Please try again.')
+      } else {
+        setError(err.message || 'Something went wrong. Please try again.')
+      }
       setView('input')
+    } finally {
+      clearTimeout(timeout)
     }
   }, [])
 
