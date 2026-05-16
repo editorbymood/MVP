@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "concurrently -n server,vite -c cyan,magenta \"node server.js\" \"vite\"",
     "build": "vite build",
-    "preview": "vite preview",
-    "server": "node server.js"
+    "preview": "npm run build && wrangler dev",
+    "server": "node server.js",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -18,10 +19,12 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.37.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "wrangler": "^4.92.0"
   }
 }
