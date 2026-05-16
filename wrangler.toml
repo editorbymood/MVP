@@ -1,0 +1,10 @@
+name = "specforge"
+compatibility_date = "2025-05-01"
+main = "api/worker.js"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[vars]
+GEMINI_MODEL = "gemini-2.5-flash"
