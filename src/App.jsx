@@ -7,12 +7,12 @@ export default function App() {
   const [view, setView] = useState('input') // 'input' | 'loading' | 'result'
   const [spec, setSpec] = useState(null)
   const [error, setError] = useState(null)
-  const [idea, setIdea] = useState('')
+  const [lastPayload, setLastPayload] = useState(null)
 
-  const handleGenerate = useCallback(async (ideaText) => {
+  const handleGenerate = useCallback(async (payload) => {
     setError(null)
     setView('loading')
-    setIdea(ideaText)
+    setLastPayload(payload)
 
     // 120s timeout — Gemini thinking can take up to 60s
     const controller = new AbortController()
@@ -22,7 +22,7 @@ export default function App() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea: ideaText }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       })
 
@@ -66,7 +66,7 @@ export default function App() {
   const handleReset = useCallback(() => {
     setSpec(null)
     setError(null)
-    setIdea('')
+    setLastPayload(null)
     setView('input')
   }, [])
 
@@ -76,7 +76,7 @@ export default function App() {
         <InputView
           onGenerate={handleGenerate}
           error={error}
-          initialIdea={idea}
+          initialIdea={lastPayload?.idea || ''}
         />
       )}
       {view === 'loading' && <LoadingView />}
