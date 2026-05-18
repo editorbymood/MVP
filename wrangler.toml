@@ -1,4 +1,4 @@
-name = "specforge"
+name = "ideatomvp"
 compatibility_date = "2025-05-01"
 main = "api/worker.js"
 
