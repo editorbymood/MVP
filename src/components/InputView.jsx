@@ -25,10 +25,25 @@ export default function InputView({ onGenerate, error, initialIdea }) {
     timeline: '',
     teamType: 'solo',
   })
+  const [isScrolling, setIsScrolling] = useState(false)
+  const scrollTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
+
+  const handleScroll = () => {
+    setIsScrolling(true)
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false)
+    }, 180)
+  }
 
   useEffect(() => {
     textareaRef.current?.focus()
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -62,7 +77,30 @@ export default function InputView({ onGenerate, error, initialIdea }) {
   }
 
   return (
-    <div className="input-view">
+    <div className="input-view" onScroll={handleScroll}>
+      {/* Scroll Blur Progressive Overlay */}
+      <div className={`scroll-blur-container ${isScrolling ? 'scrolling' : ''}`}>
+        {[...Array(6)].map((_, i) => {
+          const b = (12 * (i + 1)) / 6
+          const coverTop = 100 - i * (100 / 6)
+          const fadeStart = Math.max(0, coverTop - (100 / 6))
+          const mask = `linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) ${fadeStart}%, rgba(0,0,0,0) ${coverTop}%)`
+          const filter = `blur(${b}px)`
+          return (
+            <div
+              key={i}
+              className="scroll-blur-layer"
+              style={{
+                backdropFilter: filter,
+                WebkitBackdropFilter: filter,
+                WebkitMaskImage: mask,
+                maskImage: mask,
+              }}
+            />
+          )
+        })}
+      </div>
+
       <div className="input-container">
         <div className="input-header">
           <div className="input-badge">⚡ AI-Powered</div>
@@ -70,6 +108,12 @@ export default function InputView({ onGenerate, error, initialIdea }) {
           <p className="input-subtitle">
             Describe your startup idea and get a complete, ship-ready MVP specification in seconds.
           </p>
+          <div className="hero-tip-notice">
+            <span className="tip-emoji">💡</span>
+            <div className="tip-text">
+              <strong>Tips for best results:</strong> Keep your idea under 2–3 sentences · Focus on the core problem · Avoid technical jargon · One product idea at a time
+            </div>
+          </div>
         </div>
 
         {error && (
