@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ScrollBlurEssential from './ScrollBlurEssential'
 
 const EXAMPLES = [
   { emoji: '🧠', text: 'AI-powered resume builder that tailors resumes to specific job postings in seconds' },
@@ -145,27 +146,8 @@ export default function InputView({ onGenerate, error, initialIdea }) {
 
   return (
     <div className="input-view" onScroll={handleScroll}>
-      {/* Scroll Blur Progressive Overlay */}
-      <div className={`scroll-blur-container ${isScrolling ? 'scrolling' : ''}`}>
-        {[...Array(6)].map((_, i) => {
-          const b = (12 * (i + 1)) / 6
-          const coverTop = 100 - i * (100 / 6)
-          const fadeStart = Math.max(0, coverTop - (100 / 6))
-          const mask = `linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) ${fadeStart}%, rgba(0,0,0,0) ${coverTop}%)`
-          const filter = `blur(${b}px)`
-          return (
-            <div
-              key={i}
-              className="scroll-blur-layer"
-              style={{
-                backdropFilter: filter,
-                WebkitBackdropFilter: filter,
-                WebkitMaskImage: mask,
-                maskImage: mask,
-              }}
-            />
-          )
-        })}
+      <div className="scroll-blur-container">
+        <ScrollBlurEssential direction="top" />
       </div>
 
       <div className="input-container">
